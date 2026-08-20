@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  
 }
 
 // ========================================
@@ -103,13 +102,13 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  addresses      Address[]
-  restaurants    Restaurant[]
-  rider          Rider?
-  cart           Cart?
-  orders         Order[]
-  reviews        Review[]
-  notifications  Notification[]
+  addresses     Address[]
+  restaurants   Restaurant[]
+  rider         Rider?
+  cart          Cart?
+  orders        Order[]
+  reviews       Review[]
+  notifications Notification[]
 
   @@index([role])
   @@index([status])
@@ -127,11 +126,11 @@ model Address {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  label       String
-  address     String
-  city        String
-  subCity     String?
-  phone       String?
+  label   String
+  address String
+  city    String
+  subCity String?
+  phone   String?
 
   latitude  Decimal @db.Decimal(10, 7)
   longitude Decimal @db.Decimal(10, 7)
@@ -156,7 +155,7 @@ model Restaurant {
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Restrict)
 
   name        String
-  slug        String @unique
+  slug        String  @unique
   description String?
   phone       String
   email       String?
@@ -164,15 +163,15 @@ model Restaurant {
   logoUrl       String?
   coverImageUrl String?
 
-  address   String
-  city      String
-  subCity   String?
+  address String
+  city    String
+  subCity String?
 
   latitude  Decimal @db.Decimal(10, 7)
   longitude Decimal @db.Decimal(10, 7)
 
-  status  RestaurantStatus @default(PENDING)
-  isOpen  Boolean          @default(false)
+  status RestaurantStatus @default(PENDING)
+  isOpen Boolean          @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -276,7 +275,7 @@ model CartItem {
   id String @id @default(uuid())
 
   cartId String
-  cart   Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
 
   menuItemId String
   menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
@@ -290,6 +289,7 @@ model CartItem {
   @@index([menuItemId])
   @@map("cart_items")
 }
+
 // ========================================
 // ORDER
 // ========================================
@@ -305,12 +305,12 @@ model Order {
   restaurantId String
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
 
-  subtotal     Decimal @db.Decimal(10, 2)
-  deliveryFee  Decimal @db.Decimal(10, 2)
-  discount     Decimal @default(0) @db.Decimal(10, 2)
-  total        Decimal @db.Decimal(10, 2)
+  subtotal    Decimal @db.Decimal(10, 2)
+  deliveryFee Decimal @db.Decimal(10, 2)
+  discount    Decimal @default(0) @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
 
-  status        OrderStatus  @default(PENDING)
+  status        OrderStatus   @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
 
   // Snapshot of delivery information at order time
@@ -396,7 +396,7 @@ model Rider {
   // Relations
   deliveries Delivery[]
   reviews    Review[]
-  
+
   @@index([isOnline])
   @@index([isVerified])
   @@map("riders")
@@ -413,15 +413,15 @@ model Delivery {
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   riderId String?
-  rider   Rider? @relation(fields: [riderId], references: [id], onDelete: SetNull)
+  rider   Rider?  @relation(fields: [riderId], references: [id], onDelete: SetNull)
 
   status DeliveryStatus @default(PENDING)
 
-  assignedAt             DateTime?
-  acceptedAt             DateTime?
-  arrivedAtRestaurantAt  DateTime?
-  pickedUpAt             DateTime?
-  deliveredAt            DateTime?
+  assignedAt            DateTime?
+  acceptedAt            DateTime?
+  arrivedAtRestaurantAt DateTime?
+  pickedUpAt            DateTime?
+  deliveredAt           DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -465,20 +465,20 @@ model Payment {
 // REVIEW
 // ========================================
 
- model Review {
+model Review {
   id String @id @default(uuid())
 
   orderId String
-  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   customerId String
-  customer   User @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  customer   User   @relation(fields: [customerId], references: [id], onDelete: Restrict)
 
   restaurantId String
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
 
   riderId String?
-  rider   Rider? @relation(fields: [riderId], references: [id], onDelete: SetNull)
+  rider   Rider?  @relation(fields: [riderId], references: [id], onDelete: SetNull)
 
   rating  Int
   comment String?
@@ -491,6 +491,7 @@ model Payment {
   @@index([customerId])
   @@map("reviews")
 }
+
 // ========================================
 // NOTIFICATION
 // ========================================
