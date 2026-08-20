@@ -10,6 +10,9 @@ import {
   getRestaurantById,
   updateRestaurant,
   deleteRestaurant,
+  getRestaurantDashboard,
+  openRestaurant,
+  closeRestaurant,
 } from "../controllers/restaurant.controller.js";
 
 import {
@@ -52,5 +55,26 @@ router.delete(
     authenticate,
     authorize("RESTAURANT_OWNER"),
     deleteRestaurant,
+  );
+
+  router.get(
+    "/:id/dashboard",
+    authenticate,
+    authorize("RESTAURANT_OWNER"),
+    getRestaurantDashboard,
+  );
+  
+  router.patch(
+    "/:id/open",
+    authenticate,
+    authorize("RESTAURANT_OWNER"),
+    openRestaurant,
+  );
+  
+  router.patch(
+    "/:id/close",
+    authenticate,
+    authorize("RESTAURANT_OWNER"),
+    closeRestaurant,
   );
 export default router;

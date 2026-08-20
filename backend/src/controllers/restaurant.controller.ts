@@ -194,3 +194,156 @@ export const deleteRestaurant = async (
     });
   }
 };
+
+// ========================================
+// GET RESTAURANT DASHBOARD
+// ========================================
+
+export const getRestaurantDashboard = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const restaurantId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const dashboard =
+      await restaurantService.getRestaurantDashboard(
+        restaurantId,
+        req.user!.userId,
+      );
+
+    res.status(200).json({
+      success: true,
+      data: dashboard,
+    });
+  } catch (error) {
+    console.error(
+      "Get restaurant dashboard error:",
+      error,
+    );
+
+    if (
+      error instanceof Error &&
+      error.message === "Restaurant not found"
+    ) {
+      res.status(404).json({
+        success: false,
+        message: "Restaurant not found",
+      });
+      return;
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to get restaurant dashboard",
+    });
+  }
+};
+
+// ========================================
+// OPEN RESTAURANT
+// ========================================
+
+export const openRestaurant = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const restaurantId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const restaurant =
+      await restaurantService.openRestaurant(
+        restaurantId,
+        req.user!.userId,
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Restaurant opened successfully",
+      data: {
+        restaurant,
+      },
+    });
+  } catch (error) {
+    console.error("Open restaurant error:", error);
+
+    if (error instanceof Error) {
+      if (error.message === "Restaurant not found") {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      if (
+        error.message.includes(
+          "Only approved restaurants",
+        )
+      ) {
+        res.status(409).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to open restaurant",
+    });
+  }
+};
+
+
+// ========================================
+// CLOSE RESTAURANT
+// ========================================
+
+export const closeRestaurant = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const restaurantId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const restaurant =
+      await restaurantService.closeRestaurant(
+        restaurantId,
+        req.user!.userId,
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Restaurant closed successfully",
+      data: {
+        restaurant,
+      },
+    });
+  } catch (error) {
+    console.error("Close restaurant error:", error);
+
+    if (
+      error instanceof Error &&
+      error.message === "Restaurant not found"
+    ) {
+      res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+      return;
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to close restaurant",
+    });
+  }
+};
