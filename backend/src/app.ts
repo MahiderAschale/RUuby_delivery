@@ -7,6 +7,7 @@ import restaurantRoutes from "./routes/restaurant.routes.js";
 import menuCategoryRoutes from "./routes/menu-category.routes.js";
 import menuItemRoutes from "./routes/menu-item.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import customerRestaurantRoutes from "./routes/customer-restaurant.routes.js";
 
 const app = express();
 
@@ -23,5 +24,5 @@ app.use("/api/v1/restaurants",restaurantRoutes)
 app.use( "/api/v1",  menuCategoryRoutes,);
 app.use("/api/v1",menuItemRoutes,);
 app.use("/api/v1/admin", adminRoutes);
-
+app.use("/api/v1", customerRestaurantRoutes,);
 export default app;
