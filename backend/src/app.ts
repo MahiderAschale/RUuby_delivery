@@ -8,6 +8,7 @@ import menuCategoryRoutes from "./routes/menu-category.routes.js";
 import menuItemRoutes from "./routes/menu-item.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import customerRestaurantRoutes from "./routes/customer-restaurant.routes.js";
+import cartRoutes from "./routes/cart.routes.js";
 
 const app = express();
 
@@ -25,4 +26,5 @@ app.use( "/api/v1",  menuCategoryRoutes,);
 app.use("/api/v1",menuItemRoutes,);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1", customerRestaurantRoutes,);
+app.use("/api/v1/cart", cartRoutes,);
 export default app;
