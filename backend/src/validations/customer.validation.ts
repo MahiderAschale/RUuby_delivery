@@ -1,10 +1,10 @@
 import { z } from "zod";
 
+// ========================================
+// RESTAURANT LIST QUERY
+// ========================================
+
 export const restaurantListQuerySchema = z.object({
-  body: z.object({}),
-
-  params: z.object({}),
-
   query: z.object({
     search: z
       .string()
@@ -15,26 +15,27 @@ export const restaurantListQuerySchema = z.object({
     city: z
       .string()
       .trim()
-      .max(100)
+      .max(100, "City is too long")
       .optional(),
 
     subCity: z
       .string()
       .trim()
-      .max(100)
+      .max(100, "Sub-city is too long")
       .optional(),
   }),
 });
 
-export const restaurantSlugParamSchema = z.object({
-  body: z.object({}),
 
+// ========================================
+// RESTAURANT SLUG PARAM
+// ========================================
+
+export const restaurantSlugParamSchema = z.object({
   params: z.object({
     slug: z
       .string()
       .trim()
       .min(1, "Restaurant slug is required"),
   }),
-
-  query: z.object({}),
 });

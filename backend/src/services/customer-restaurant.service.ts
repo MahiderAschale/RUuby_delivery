@@ -84,20 +84,17 @@ export const getRestaurants = async (filters: {
   });
 };
 
-
 // ========================================
-// GET RESTAURANT BY SLUG
+// GET APPROVED RESTAURANT BY SLUG
 // ========================================
 
 export const getRestaurantBySlug = async (
   slug: string,
 ) => {
-  return prisma.restaurant.findFirst({
+  const restaurant = await prisma.restaurant.findUnique({
     where: {
       slug,
-      status: "APPROVED",
     },
-
     select: {
       id: true,
       name: true,
@@ -153,4 +150,16 @@ export const getRestaurantBySlug = async (
       },
     },
   });
+
+  if (!restaurant) {
+    return null;
+  }
+
+  // Customer-facing API must never expose
+  // unapproved restaurants.
+  if (restaurant.status !== "APPROVED") {
+    return null;
+  }
+
+  return restaurant;
 };

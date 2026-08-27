@@ -22,6 +22,11 @@ import {
 
 const router = Router();
 
+
+// ========================================
+// CREATE RESTAURANT
+// ========================================
+
 router.post(
   "/",
   authenticate,
@@ -30,6 +35,11 @@ router.post(
   createRestaurant,
 );
 
+
+// ========================================
+// GET MY RESTAURANTS
+// ========================================
+
 router.get(
   "/my",
   authenticate,
@@ -37,11 +47,46 @@ router.get(
   getMyRestaurants,
 );
 
+
+// ========================================
+// RESTAURANT DASHBOARD
+// ========================================
+
 router.get(
-  "/:id",
+  "/:id/dashboard",
   authenticate,
-  getRestaurantById,
+  authorize("RESTAURANT_OWNER"),
+  getRestaurantDashboard,
 );
+
+
+// ========================================
+// OPEN RESTAURANT
+// ========================================
+
+router.patch(
+  "/:id/open",
+  authenticate,
+  authorize("RESTAURANT_OWNER"),
+  openRestaurant,
+);
+
+
+// ========================================
+// CLOSE RESTAURANT
+// ========================================
+
+router.patch(
+  "/:id/close",
+  authenticate,
+  authorize("RESTAURANT_OWNER"),
+  closeRestaurant,
+);
+
+
+// ========================================
+// UPDATE RESTAURANT
+// ========================================
 
 router.patch(
   "/:id",
@@ -50,31 +95,30 @@ router.patch(
   validate(updateRestaurantSchema),
   updateRestaurant,
 );
-router.delete(
-    "/:id",
-    authenticate,
-    authorize("RESTAURANT_OWNER"),
-    deleteRestaurant,
-  );
 
-  router.get(
-    "/:id/dashboard",
-    authenticate,
-    authorize("RESTAURANT_OWNER"),
-    getRestaurantDashboard,
-  );
-  
-  router.patch(
-    "/:id/open",
-    authenticate,
-    authorize("RESTAURANT_OWNER"),
-    openRestaurant,
-  );
-  
-  router.patch(
-    "/:id/close",
-    authenticate,
-    authorize("RESTAURANT_OWNER"),
-    closeRestaurant,
-  );
+
+// ========================================
+// DELETE RESTAURANT
+// ========================================
+
+router.delete(
+  "/:id",
+  authenticate,
+  authorize("RESTAURANT_OWNER"),
+  deleteRestaurant,
+);
+
+
+// ========================================
+// GET MY RESTAURANT BY ID
+// ========================================
+
+router.get(
+  "/my/:id",
+  authenticate,
+  authorize("RESTAURANT_OWNER"),
+  getRestaurantById,
+);
+
+
 export default router;
