@@ -52,11 +52,8 @@ enum PaymentStatus {
   CANCELLED
 }
 
-enum PaymentMethod {
-  CASH
-  TELEBIRR
-  MPESA
-  ARIFPAY
+enum PaymentMethod{
+  CHAPA
 }
 
 enum DeliveryStatus {
@@ -444,7 +441,7 @@ model Payment {
 
   amount Decimal @db.Decimal(10, 2)
 
-  method PaymentMethod
+  method PaymentMethod @default(CHAPA)
   status PaymentStatus @default(PENDING)
 
   provider             String?

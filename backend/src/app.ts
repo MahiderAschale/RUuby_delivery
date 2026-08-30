@@ -9,6 +9,9 @@ import menuItemRoutes from "./routes/menu-item.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import customerRestaurantRoutes from "./routes/customer-restaurant.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
+import addressRoutes from "./routes/address.routes.js";
+import checkoutRoutes from "./routes/checkout.routes.js";
+import chapaRoutes from "./routes/chapa.routes.js";
 
 const app = express();
 
@@ -27,4 +30,7 @@ app.use("/api/v1",menuItemRoutes,);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1", customerRestaurantRoutes,);
 app.use("/api/v1/cart", cartRoutes,);
+app.use( "/api/v1/addresses",addressRoutes,);
+app.use("/api/v1/checkout", checkoutRoutes,);
+app.use("/api/v1/payments/chapa",chapaRoutes,);
 export default app;
