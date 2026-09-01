@@ -386,8 +386,7 @@ export const getCustomerOrders = async (
   
   // ========================================
   // CANCEL CUSTOMER ORDER
-  // ========================================
-  
+ 
   export const cancelCustomerOrder = async (
     userId: string,
     orderId: string,
@@ -426,3 +425,324 @@ export const getCustomerOrders = async (
       },
     });
   };
+
+
+  // GET RESTAURANT ORDERS
+
+  
+export const getRestaurantOrders = async (
+  restaurantId: string,
+  ownerId: string,
+) => {
+  const restaurant = await prisma.restaurant.findFirst({
+    where: {
+      id: restaurantId,
+      ownerId,
+    },
+  });
+
+  if (!restaurant) {
+    throw new Error("Restaurant not found");
+  }
+
+  return prisma.order.findMany({
+    where: {
+      restaurantId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      customer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+        },
+      },
+
+      items: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          quantity: true,
+          subtotal: true,
+          menuItem: {
+            select: {
+              id: true,
+              imageUrl: true,
+            },
+          },
+        },
+      },
+
+      payment: {
+        select: {
+          id: true,
+          amount: true,
+          method: true,
+          status: true,
+          provider: true,
+          transactionReference: true,
+          paidAt: true,
+        },
+      },
+
+      delivery: {
+        select: {
+          id: true,
+          status: true,
+          riderId: true,
+          assignedAt: true,
+          acceptedAt: true,
+          pickedUpAt: true,
+          deliveredAt: true,
+        },
+      },
+    },
+  });
+};
+
+// GET RESTAURANT ORDER BY ID
+export const getRestaurantOrderById = async (
+  restaurantId: string,
+  ownerId: string,
+  orderId: string,
+) => {
+  const restaurant = await prisma.restaurant.findFirst({
+    where: {
+      id: restaurantId,
+      ownerId,
+    },
+  });
+
+  if (!restaurant) {
+    throw new Error("Restaurant not found");
+  }
+
+  return prisma.order.findFirst({
+    where: {
+      id: orderId,
+      restaurantId,
+    },
+    include: {
+      customer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          email: true,
+        },
+      },
+
+      items: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        include: {
+          menuItem: {
+            select: {
+              id: true,
+              imageUrl: true,
+            },
+          },
+        },
+      },
+
+      payment: {
+        select: {
+          id: true,
+          amount: true,
+          method: true,
+          status: true,
+          provider: true,
+          transactionReference: true,
+          paidAt: true,
+        },
+      },
+
+      delivery: {
+        include: {
+          rider: {
+            select: {
+              id: true,
+              vehicleType: true,
+              vehicleNumber: true,
+              profileImageUrl: true,
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  phone: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+};
+
+// ACCEPT RESTAURANT ORDER
+export const acceptRestaurantOrder = async (
+  restaurantId: string,
+  ownerId: string,
+  orderId: string,
+) => {
+  const order = await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      restaurantId,
+      restaurant: {
+        ownerId,
+      },
+    },
+  });
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  if (order.status !== "PENDING") {
+    throw new Error(
+      "Only pending orders can be accepted",
+    );
+  }
+
+  return prisma.order.update({
+    where: {
+      id: orderId,
+    },
+    data: {
+      status: "CONFIRMED",
+    },
+  });
+};
+
+// REJECT RESTAURANT ORDER
+export const rejectRestaurantOrder = async (
+  restaurantId: string,
+  ownerId: string,
+  orderId: string,
+) => {
+  const order = await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      restaurantId,
+      restaurant: {
+        ownerId,
+      },
+    },
+  });
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  if (order.status !== "PENDING") {
+    throw new Error(
+      "Only pending orders can be rejected",
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updatedOrder = await tx.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        status: "CANCELLED",
+      },
+    });
+
+    await tx.delivery.updateMany({
+      where: {
+        orderId,
+      },
+      data: {
+        status: "CANCELLED",
+      },
+    });
+
+    return updatedOrder;
+  });
+};
+
+// MARK ORDER AS PREPARING
+export const markOrderPreparing = async (
+  restaurantId: string,
+  ownerId: string,
+  orderId: string,
+) => {
+  const order = await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      restaurantId,
+      restaurant: {
+        ownerId,
+      },
+    },
+  });
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  if (order.status !== "CONFIRMED") {
+    throw new Error(
+      "Only confirmed orders can be marked as preparing",
+    );
+  }
+
+  return prisma.order.update({
+    where: {
+      id: orderId,
+    },
+    data: {
+      status: "PREPARING",
+    },
+  });
+};
+
+// MARK ORDER AS READY
+export const markOrderReady = async (
+  restaurantId: string,
+  ownerId: string,
+  orderId: string,
+) => {
+  const order = await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      restaurantId,
+      restaurant: {
+        ownerId,
+      },
+    },
+  });
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  if (order.status !== "PREPARING") {
+    throw new Error(
+      "Only preparing orders can be marked as ready",
+    );
+  }
+
+  return prisma.order.update({
+    where: {
+      id: orderId,
+    },
+    data: {
+      status: "READY_FOR_PICKUP",
+    },
+  });
+};
