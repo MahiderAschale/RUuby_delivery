@@ -75,3 +75,143 @@ export const createOrder = async (
     });
   }
 };
+// ========================================
+// GET CUSTOMER ORDERS
+// ========================================
+
+export const getCustomerOrders = async (
+    req: Request,
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const orders =
+        await orderService.getCustomerOrders(
+          req.user!.userId,
+        );
+  
+      res.status(200).json({
+        success: true,
+        data: {
+          orders,
+        },
+      });
+    } catch (error) {
+      console.error(
+        "Get customer orders error:",
+        error,
+      );
+  
+      res.status(500).json({
+        success: false,
+        message: "Failed to get orders",
+      });
+    }
+  };
+  
+  
+  // ========================================
+  // GET CUSTOMER ORDER BY ID
+  // ========================================
+  
+  export const getCustomerOrderById = async (
+    req: Request,
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const orderId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
+  
+      const order =
+        await orderService.getCustomerOrderById(
+          req.user!.userId,
+          orderId,
+        );
+  
+      if (!order) {
+        res.status(404).json({
+          success: false,
+          message: "Order not found",
+        });
+        return;
+      }
+  
+      res.status(200).json({
+        success: true,
+        data: {
+          order,
+        },
+      });
+    } catch (error) {
+      console.error(
+        "Get customer order error:",
+        error,
+      );
+  
+      res.status(500).json({
+        success: false,
+        message: "Failed to get order",
+      });
+    }
+  };
+  
+  
+  // ========================================
+  // CANCEL CUSTOMER ORDER
+  // ========================================
+  
+  export const cancelCustomerOrder = async (
+    req: Request,
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const orderId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
+  
+      const order =
+        await orderService.cancelCustomerOrder(
+          req.user!.userId,
+          orderId,
+        );
+  
+      res.status(200).json({
+        success: true,
+        message: "Order cancelled successfully",
+        data: {
+          order,
+        },
+      });
+    } catch (error) {
+      console.error(
+        "Cancel customer order error:",
+        error,
+      );
+  
+      if (error instanceof Error) {
+        if (error.message === "Order not found") {
+          res.status(404).json({
+            success: false,
+            message: error.message,
+          });
+          return;
+        }
+  
+        if (
+          error.message ===
+          "This order can no longer be cancelled"
+        ) {
+          res.status(409).json({
+            success: false,
+            message: error.message,
+          });
+          return;
+        }
+      }
+  
+      res.status(500).json({
+        success: false,
+        message: "Failed to cancel order",
+      });
+    }
+  };

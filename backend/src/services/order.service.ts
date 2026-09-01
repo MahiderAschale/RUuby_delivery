@@ -218,3 +218,211 @@ export const createOrder = async (
     },
   );
 };
+// ========================================
+// GET CUSTOMER ORDERS
+// ========================================
+
+export const getCustomerOrders = async (
+    userId: string,
+  ) => {
+    return prisma.order.findMany({
+      where: {
+        customerId: userId,
+      },
+  
+      orderBy: {
+        createdAt: "desc",
+      },
+  
+      include: {
+        restaurant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logoUrl: true,
+          },
+        },
+  
+        items: {
+          orderBy: {
+            createdAt: "asc",
+          },
+  
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            quantity: true,
+            subtotal: true,
+            menuItem: {
+              select: {
+                id: true,
+                imageUrl: true,
+              },
+            },
+          },
+        },
+  
+        payment: {
+          select: {
+            id: true,
+            amount: true,
+            method: true,
+            status: true,
+            provider: true,
+            transactionReference: true,
+            paidAt: true,
+          },
+        },
+  
+        delivery: {
+          select: {
+            id: true,
+            status: true,
+            assignedAt: true,
+            acceptedAt: true,
+            pickedUpAt: true,
+            deliveredAt: true,
+          },
+        },
+      },
+    });
+  };
+  
+  
+  // ========================================
+  // GET CUSTOMER ORDER BY ID
+  // ========================================
+  
+  export const getCustomerOrderById = async (
+    userId: string,
+    orderId: string,
+  ) => {
+    return prisma.order.findFirst({
+      where: {
+        id: orderId,
+        customerId: userId,
+      },
+  
+      include: {
+        restaurant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            phone: true,
+            logoUrl: true,
+            coverImageUrl: true,
+            address: true,
+            city: true,
+            subCity: true,
+          },
+        },
+  
+        items: {
+          orderBy: {
+            createdAt: "asc",
+          },
+  
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            quantity: true,
+            subtotal: true,
+  
+            menuItem: {
+              select: {
+                id: true,
+                imageUrl: true,
+              },
+            },
+          },
+        },
+  
+        payment: {
+          select: {
+            id: true,
+            amount: true,
+            method: true,
+            status: true,
+            provider: true,
+            transactionReference: true,
+            paidAt: true,
+          },
+        },
+  
+        delivery: {
+          select: {
+            id: true,
+            status: true,
+            rider: {
+              select: {
+                id: true,
+                vehicleType: true,
+                vehicleNumber: true,
+                profileImageUrl: true,
+                user: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    phone: true,
+                  },
+                },
+              },
+            },
+            assignedAt: true,
+            acceptedAt: true,
+            arrivedAtRestaurantAt: true,
+            pickedUpAt: true,
+            deliveredAt: true,
+          },
+        },
+      },
+    });
+  };
+  
+  
+  // ========================================
+  // CANCEL CUSTOMER ORDER
+  // ========================================
+  
+  export const cancelCustomerOrder = async (
+    userId: string,
+    orderId: string,
+  ) => {
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        customerId: userId,
+      },
+    });
+  
+    if (!order) {
+      throw new Error("Order not found");
+    }
+  
+    const cancellableStatuses = [
+      "PENDING",
+      "CONFIRMED",
+    ];
+  
+    if (
+      !cancellableStatuses.includes(order.status)
+    ) {
+      throw new Error(
+        "This order can no longer be cancelled",
+      );
+    }
+  
+    return prisma.order.update({
+      where: {
+        id: orderId,
+      },
+  
+      data: {
+        status: "CANCELLED",
+      },
+    });
+  };
