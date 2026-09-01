@@ -66,10 +66,7 @@ export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
 
 
 export const PaymentMethod = {
-  CASH: 'CASH',
-  TELEBIRR: 'TELEBIRR',
-  MPESA: 'MPESA',
-  ARIFPAY: 'ARIFPAY'
+  CHAPA: 'CHAPA'
 } as const
 
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]

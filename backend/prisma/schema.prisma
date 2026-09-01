@@ -52,7 +52,7 @@ enum PaymentStatus {
   CANCELLED
 }
 
-enum PaymentMethod{
+enum PaymentMethod {
   CHAPA
 }
 
