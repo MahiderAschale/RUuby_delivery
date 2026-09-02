@@ -13,6 +13,7 @@ import addressRoutes from "./routes/address.routes.js";
 import checkoutRoutes from "./routes/checkout.routes.js";
 import chapaRoutes from "./routes/chapa.routes.js";
 import orderRoutes from "./routes/order.routes.js";
+import riderRoutes from "./routes/rider.routes.js";
 
 const app = express();
 
@@ -35,5 +36,6 @@ app.use( "/api/v1/addresses",addressRoutes,);
 app.use("/api/v1/checkout", checkoutRoutes,);
 app.use("/api/v1/payments/chapa",chapaRoutes,);
 app.use("/api/v1/orders", orderRoutes, );
+app.use("/api/v1/riders", riderRoutes,);
 
 export default app;
