@@ -302,3 +302,183 @@ export const restoreRestaurant = async (
     });
   }
 };
+
+
+
+// GET RIDERS
+
+export const getRiders = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const verified =
+      req.query.verified === undefined
+        ? undefined
+        : req.query.verified === "true";
+
+    const riders = await adminService.getRiders(verified);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        riders,
+      },
+    });
+  } catch (error) {
+    console.error("Get admin riders error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to get riders",
+    });
+  }
+};
+
+// GET RIDER BY ID
+
+export const getRiderById = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const riderId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const rider = await adminService.getRiderById(
+      riderId,
+    );
+
+    if (!rider) {
+      res.status(404).json({
+        success: false,
+        message: "Rider not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        rider,
+      },
+    });
+  } catch (error) {
+    console.error("Get admin rider error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to get rider",
+    });
+  }
+};
+
+// VERIFY RIDER
+
+export const verifyRider = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const riderId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const rider = await adminService.verifyRider(
+      riderId,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Rider verified successfully",
+      data: {
+        rider,
+      },
+    });
+  } catch (error) {
+    console.error("Verify rider error:", error);
+
+    if (error instanceof Error) {
+      if (error.message === "Rider not found") {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      if (
+        error.message ===
+          "Rider is already verified" ||
+        error.message.includes(
+          "cannot be verified",
+        )
+      ) {
+        res.status(409).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to verify rider",
+    });
+  }
+};
+
+// UNVERIFY RIDER
+
+export const unverifyRider = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const riderId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const rider = await adminService.unverifyRider(
+      riderId,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Rider unverified successfully",
+      data: {
+        rider,
+      },
+    });
+  } catch (error) {
+    console.error("Unverify rider error:", error);
+
+    if (error instanceof Error) {
+      if (error.message === "Rider not found") {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      if (
+        error.message ===
+        "Rider is already unverified"
+      ) {
+        res.status(409).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to unverify rider",
+    });
+  }
+};

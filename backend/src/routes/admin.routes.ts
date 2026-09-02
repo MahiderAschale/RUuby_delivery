@@ -9,6 +9,10 @@ import {
   rejectRestaurant,
   suspendRestaurant,
   restoreRestaurant,
+  getRiders,
+  getRiderById,
+  verifyRider,
+  unverifyRider,
 } from "../controllers/admin.controller.js";
 
 import { authenticate } from "../middleware/auth.middleware.js";
@@ -68,6 +72,40 @@ router.patch(
   authorize("ADMIN"),
   validate(restaurantIdParamSchema),
   restoreRestaurant,
+);
+
+
+// RIDER MANAGEMENT
+
+router.get(
+  "/riders",
+  authenticate,
+  authorize("ADMIN"),
+  getRiders,
+);
+
+router.get(
+  "/riders/:id",
+  authenticate,
+  authorize("ADMIN"),
+  validate(restaurantIdParamSchema),
+  getRiderById,
+);
+
+router.patch(
+  "/riders/:id/verify",
+  authenticate,
+  authorize("ADMIN"),
+  validate(restaurantIdParamSchema),
+  verifyRider,
+);
+
+router.patch(
+  "/riders/:id/unverify",
+  authenticate,
+  authorize("ADMIN"),
+  validate(restaurantIdParamSchema),
+  unverifyRider,
 );
 
 export default router;
