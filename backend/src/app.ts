@@ -15,7 +15,6 @@ import chapaRoutes from "./routes/chapa.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import riderRoutes from "./routes/rider.routes.js";
 import deliveryRoutes from "./routes/delivery.routes.js";
-
 const app = express();
 
 app.use(helmet()); 

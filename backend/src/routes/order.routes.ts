@@ -17,7 +17,13 @@ import {
 
 import { createOrderSchema } from "../validations/order.validation.js";
 import { authorize } from "../middleware/role.middleware.js";
+import {
+  getOrderTracking,
+} from "../controllers/tracking.controller.js";
 
+import {
+  orderTrackingParamSchema,
+} from "../validations/tracking.validation.js";
 const router = Router();
 
 // CREATE ORDER
@@ -101,5 +107,15 @@ router.patch(
   authenticate,
   authorize("RESTAURANT_OWNER"),
   markOrderReady,
+);
+
+// CUSTOMER ORDER TRACKING
+
+router.get(
+  "/:id/tracking",
+  authenticate,
+  authorize("CUSTOMER"),
+  validate(orderTrackingParamSchema),
+  getOrderTracking,
 );
 export default router;
