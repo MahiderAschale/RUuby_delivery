@@ -406,3 +406,255 @@ export const rejectDelivery = async (
     });
   });
 };
+
+
+// RIDER ARRIVES AT RESTAURANT
+
+export const arriveAtRestaurant = async (
+  userId: string,
+  deliveryId: string,
+) => {
+  const rider = await prisma.rider.findUnique({
+    where: {
+      userId,
+    },
+  });
+
+  if (!rider) {
+    throw new Error("Rider profile not found");
+  }
+
+  const delivery = await prisma.delivery.findUnique({
+    where: {
+      id: deliveryId,
+    },
+  });
+
+  if (!delivery) {
+    throw new Error("Delivery not found");
+  }
+
+  if (delivery.riderId !== rider.id) {
+    throw new Error(
+      "This delivery is not assigned to you",
+    );
+  }
+
+  if (delivery.status !== "ACCEPTED") {
+    throw new Error(
+      "Only accepted deliveries can be marked as arrived",
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    return tx.delivery.update({
+      where: {
+        id: deliveryId,
+      },
+      data: {
+        status: "ARRIVED_AT_RESTAURANT",
+        arrivedAtRestaurantAt: new Date(),
+      },
+      include: {
+        order: true,
+      },
+    });
+  });
+};
+
+// RIDER PICKS UP ORDER
+
+export const pickupOrder = async (
+  userId: string,
+  deliveryId: string,
+) => {
+  const rider = await prisma.rider.findUnique({
+    where: {
+      userId,
+    },
+  });
+
+  if (!rider) {
+    throw new Error("Rider profile not found");
+  }
+
+  const delivery = await prisma.delivery.findUnique({
+    where: {
+      id: deliveryId,
+    },
+  });
+
+  if (!delivery) {
+    throw new Error("Delivery not found");
+  }
+
+  if (delivery.riderId !== rider.id) {
+    throw new Error(
+      "This delivery is not assigned to you",
+    );
+  }
+
+  if (delivery.status !== "ARRIVED_AT_RESTAURANT") {
+    throw new Error(
+      "Rider must arrive at the restaurant before pickup",
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updatedDelivery =
+      await tx.delivery.update({
+        where: {
+          id: deliveryId,
+        },
+        data: {
+          status: "PICKED_UP",
+          pickedUpAt: new Date(),
+        },
+        include: {
+          order: true,
+        },
+      });
+
+    await tx.order.update({
+      where: {
+        id: delivery.orderId,
+      },
+      data: {
+        status: "PICKED_UP",
+      },
+    });
+
+    return updatedDelivery;
+  });
+};
+
+// RIDER STARTS DELIVERY
+
+export const startDelivery = async (
+  userId: string,
+  deliveryId: string,
+) => {
+  const rider = await prisma.rider.findUnique({
+    where: {
+      userId,
+    },
+  });
+
+  if (!rider) {
+    throw new Error("Rider profile not found");
+  }
+
+  const delivery = await prisma.delivery.findUnique({
+    where: {
+      id: deliveryId,
+    },
+  });
+
+  if (!delivery) {
+    throw new Error("Delivery not found");
+  }
+
+  if (delivery.riderId !== rider.id) {
+    throw new Error(
+      "This delivery is not assigned to you",
+    );
+  }
+
+  if (delivery.status !== "PICKED_UP") {
+    throw new Error(
+      "Order must be picked up before starting delivery",
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updatedDelivery =
+      await tx.delivery.update({
+        where: {
+          id: deliveryId,
+        },
+        data: {
+          status: "ON_THE_WAY",
+        },
+        include: {
+          order: true,
+        },
+      });
+
+    await tx.order.update({
+      where: {
+        id: delivery.orderId,
+      },
+      data: {
+        status: "ON_THE_WAY",
+      },
+    });
+
+    return updatedDelivery;
+  });
+};
+
+// RIDER MARKS ORDER DELIVERED
+
+export const completeDelivery = async (
+  userId: string,
+  deliveryId: string,
+) => {
+  const rider = await prisma.rider.findUnique({
+    where: {
+      userId,
+    },
+  });
+
+  if (!rider) {
+    throw new Error("Rider profile not found");
+  }
+
+  const delivery = await prisma.delivery.findUnique({
+    where: {
+      id: deliveryId,
+    },
+  });
+
+  if (!delivery) {
+    throw new Error("Delivery not found");
+  }
+
+  if (delivery.riderId !== rider.id) {
+    throw new Error(
+      "This delivery is not assigned to you",
+    );
+  }
+
+  if (delivery.status !== "ON_THE_WAY") {
+    throw new Error(
+      "Only deliveries that are on the way can be completed",
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updatedDelivery =
+      await tx.delivery.update({
+        where: {
+          id: deliveryId,
+        },
+        data: {
+          status: "DELIVERED",
+          deliveredAt: new Date(),
+        },
+        include: {
+          order: true,
+        },
+      });
+
+    await tx.order.update({
+      where: {
+        id: delivery.orderId,
+      },
+      data: {
+        status: "DELIVERED",
+      },
+    });
+
+    return updatedDelivery;
+  });
+};

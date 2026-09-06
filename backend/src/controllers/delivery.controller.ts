@@ -336,3 +336,297 @@ export const rejectDelivery = async (
     });
   }
 };
+
+
+// ARRIVE AT RESTAURANT
+
+export const arriveAtRestaurant = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const deliveryId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const delivery =
+      await deliveryService.arriveAtRestaurant(
+        req.user.userId,
+        deliveryId,
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Rider arrived at restaurant",
+      data: {
+        delivery,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Arrive at restaurant error:",
+      error,
+    );
+
+    if (error instanceof Error) {
+      if (
+        error.message === "Rider profile not found" ||
+        error.message === "Delivery not found"
+      ) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      if (
+        error.message.includes(
+          "not assigned to you",
+        ) ||
+        error.message.includes(
+          "Only accepted deliveries",
+        )
+      ) {
+        res.status(409).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message:
+        "Failed to mark arrival at restaurant",
+    });
+  }
+};
+
+// PICK UP ORDER
+
+export const pickupOrder = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const deliveryId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const delivery =
+      await deliveryService.pickupOrder(
+        req.user.userId,
+        deliveryId,
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Order picked up successfully",
+      data: {
+        delivery,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Pickup order error:",
+      error,
+    );
+
+    if (error instanceof Error) {
+      if (
+        error.message === "Rider profile not found" ||
+        error.message === "Delivery not found"
+      ) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      if (
+        error.message.includes(
+          "not assigned to you",
+        ) ||
+        error.message.includes(
+          "must arrive at the restaurant",
+        )
+      ) {
+        res.status(409).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to pick up order",
+    });
+  }
+};
+
+// START DELIVERY
+
+export const startDelivery = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const deliveryId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const delivery =
+      await deliveryService.startDelivery(
+        req.user.userId,
+        deliveryId,
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Delivery started successfully",
+      data: {
+        delivery,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Start delivery error:",
+      error,
+    );
+
+    if (error instanceof Error) {
+      if (
+        error.message === "Rider profile not found" ||
+        error.message === "Delivery not found"
+      ) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      if (
+        error.message.includes(
+          "not assigned to you",
+        ) ||
+        error.message.includes(
+          "must be picked up",
+        )
+      ) {
+        res.status(409).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to start delivery",
+    });
+  }
+};
+
+// COMPLETE DELIVERY
+
+export const completeDelivery = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const deliveryId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const delivery =
+      await deliveryService.completeDelivery(
+        req.user.userId,
+        deliveryId,
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Delivery completed successfully",
+      data: {
+        delivery,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Complete delivery error:",
+      error,
+    );
+
+    if (error instanceof Error) {
+      if (
+        error.message === "Rider profile not found" ||
+        error.message === "Delivery not found"
+      ) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      if (
+        error.message.includes(
+          "not assigned to you",
+        ) ||
+        error.message.includes(
+          "can be completed",
+        )
+      ) {
+        res.status(409).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to complete delivery",
+    });
+  }
+};
