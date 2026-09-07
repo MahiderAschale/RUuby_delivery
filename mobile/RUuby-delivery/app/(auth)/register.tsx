@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +10,9 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
+import { registerUser } from "../../services/auth.service";
+import { saveToken } from "../../services/auth.storage";
 
 const COLORS = {
   background: "#F8F5EF",
@@ -21,7 +25,98 @@ const COLORS = {
 };
 
 export default function RegisterScreen() {
-  const [showPassword, setShowPassword] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [showPassword, setShowPassword] =
+    useState(false);
+
+  const [loading, setLoading] = useState(false);
+
+const handleRegister = async () => {
+  if (!firstName.trim()) {
+    Alert.alert(
+      "Registration failed",
+      "Please enter your first name.",
+    );
+    return;
+  }
+
+  if (!lastName.trim()) {
+    Alert.alert(
+      "Registration failed",
+      "Please enter your last name.",
+    );
+    return;
+  }
+
+  if (phone.length !== 10) {
+    Alert.alert(
+      "Registration failed",
+      "Phone number must be 10 digits.",
+    );
+    return;
+  }
+
+  if (password.length < 8) {
+    Alert.alert(
+      "Registration failed",
+      "Password must be at least 8 characters.",
+    );
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const response = await registerUser({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      phone,
+      email: email.trim() || undefined,
+      password,
+    });
+
+    await saveToken(
+      response.data.accessToken,
+    );
+
+    Alert.alert(
+      "Welcome to RUuby",
+      "Your account has been created successfully.",
+      [
+        {
+          text: "Continue",
+          onPress: () => {
+            router.replace("/(main)");
+          },
+        },
+      ],
+      {
+        cancelable: false,
+      },
+    );
+  } catch (error: any) {
+    console.error(
+      "Registration error:",
+      error,
+    );
+
+    const message =
+      error?.response?.data?.message ||
+      "Registration failed. Please try again.";
+
+    Alert.alert(
+      "Registration failed",
+      message,
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <ScrollView
@@ -30,7 +125,6 @@ export default function RegisterScreen() {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      {/* Back button */}
       <Pressable
         style={styles.backButton}
         onPress={() => router.back()}
@@ -43,7 +137,6 @@ export default function RegisterScreen() {
         />
       </Pressable>
 
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.iconCircle}>
           <Text style={styles.iconText}>R</Text>
@@ -59,11 +152,14 @@ export default function RegisterScreen() {
         </Text>
       </View>
 
-      {/* Form */}
       <View style={styles.form}>
-        {/* First + Last name */}
         <View style={styles.row}>
-          <View style={[styles.field, styles.halfField]}>
+          <View
+            style={[
+              styles.field,
+              styles.halfField,
+            ]}
+          >
             <Text style={styles.label}>
               FIRST NAME
             </Text>
@@ -72,11 +168,18 @@ export default function RegisterScreen() {
               placeholder="First name"
               placeholderTextColor="#AAA39A"
               autoCapitalize="words"
+              value={firstName}
+              onChangeText={setFirstName}
               style={styles.input}
             />
           </View>
 
-          <View style={[styles.field, styles.halfField]}>
+          <View
+            style={[
+              styles.field,
+              styles.halfField,
+            ]}
+          >
             <Text style={styles.label}>
               LAST NAME
             </Text>
@@ -85,12 +188,13 @@ export default function RegisterScreen() {
               placeholder="Last name"
               placeholderTextColor="#AAA39A"
               autoCapitalize="words"
+              value={lastName}
+              onChangeText={setLastName}
               style={styles.input}
             />
           </View>
         </View>
 
-        {/* Phone */}
         <View style={styles.field}>
           <Text style={styles.label}>
             PHONE NUMBER
@@ -101,11 +205,12 @@ export default function RegisterScreen() {
             placeholderTextColor="#AAA39A"
             keyboardType="phone-pad"
             maxLength={10}
+            value={phone}
+            onChangeText={setPhone}
             style={styles.input}
           />
         </View>
 
-        {/* Email */}
         <View style={styles.field}>
           <Text style={styles.label}>EMAIL</Text>
 
@@ -115,22 +220,27 @@ export default function RegisterScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            value={email}
+            onChangeText={setEmail}
             style={styles.input}
           />
         </View>
 
-        {/* Password */}
         <View style={styles.field}>
           <Text style={styles.label}>
             PASSWORD
           </Text>
 
-          <View style={styles.passwordInputContainer}>
+          <View
+            style={styles.passwordInputContainer}
+          >
             <TextInput
               placeholder="At least 8 characters"
               placeholderTextColor="#AAA39A"
               secureTextEntry={!showPassword}
               autoCapitalize="none"
+              value={password}
+              onChangeText={setPassword}
               style={styles.passwordInput}
             />
 
@@ -159,20 +269,24 @@ export default function RegisterScreen() {
           </View>
         </View>
 
-        {/* Register */}
         <Pressable
-          style={styles.registerButton}
-          onPress={() => {
-            // Backend registration will be connected later.
-          }}
+          style={[
+            styles.registerButton,
+            loading && styles.registerButtonDisabled,
+          ]}
+          onPress={handleRegister}
+          disabled={loading}
         >
-          <Text style={styles.registerButtonText}>
-            Create account
+          <Text
+            style={styles.registerButtonText}
+          >
+            {loading
+              ? "Creating account..."
+              : "Create account"}
           </Text>
         </Pressable>
       </View>
 
-      {/* Login link */}
       <View style={styles.bottomText}>
         <Text style={styles.accountText}>
           Already have an account?
@@ -329,6 +443,10 @@ const styles = StyleSheet.create({
       height: 8,
     },
     elevation: 4,
+  },
+
+  registerButtonDisabled: {
+    opacity: 0.6,
   },
 
   registerButtonText: {

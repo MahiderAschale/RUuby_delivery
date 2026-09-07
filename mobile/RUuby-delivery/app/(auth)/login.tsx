@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -8,6 +9,9 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
+import { loginUser } from "../../services/auth.service";
+import { saveToken } from "../../services/auth.storage";
 
 const COLORS = {
   background: "#F8F5EF",
@@ -20,11 +24,81 @@ const COLORS = {
 };
 
 export default function LoginScreen() {
-  const [showPassword, setShowPassword] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [showPassword, setShowPassword] =
+    useState(false);
+
+  const [loading, setLoading] = useState(false);
+
+ 
+const handleLogin = async () => {
+  if (phone.length !== 10) {
+    Alert.alert(
+      "Login failed",
+      "Phone number must be 10 digits.",
+    );
+    return;
+  }
+
+  if (!password) {
+    Alert.alert(
+      "Login failed",
+      "Please enter your password.",
+    );
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const response = await loginUser({
+      phone,
+      password,
+    });
+
+    await saveToken(
+      response.data.accessToken,
+    );
+
+    Alert.alert(
+      "Welcome back",
+      "You have logged in successfully.",
+      [
+        {
+          text: "Continue",
+          onPress: () => {
+            router.replace("/(main)");
+          },
+        },
+      ],
+      {
+        cancelable: false,
+      },
+    );
+  } catch (error: any) {
+    console.error(
+      "Login error:",
+      error,
+    );
+
+    const message =
+      error?.response?.data?.message ||
+      "Login failed. Please check your phone number and password.";
+
+    Alert.alert(
+      "Login failed",
+      message,
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <View style={styles.container}>
-      {/* Back button */}
       <Pressable
         style={styles.backButton}
         onPress={() => router.back()}
@@ -37,57 +111,77 @@ export default function LoginScreen() {
         />
       </Pressable>
 
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.iconCircle}>
           <Text style={styles.iconText}>R</Text>
         </View>
 
-        <Text style={styles.title}>Welcome back</Text>
+        <Text style={styles.title}>
+          Welcome back
+        </Text>
 
         <Text style={styles.subtitle}>
-          Login to continue ordering your favorite food.
+          Login to continue ordering your favorite
+          food.
         </Text>
       </View>
 
-      {/* Form */}
       <View style={styles.form}>
-        {/* Phone */}
         <View style={styles.field}>
-          <Text style={styles.label}>PHONE NUMBER</Text>
+          <Text style={styles.label}>
+            PHONE NUMBER
+          </Text>
 
           <TextInput
             placeholder="0912345678"
             placeholderTextColor="#AAA39A"
             keyboardType="phone-pad"
             maxLength={10}
+            value={phone}
+            onChangeText={setPhone}
             style={styles.input}
           />
         </View>
 
-        {/* Password */}
         <View style={styles.field}>
           <View style={styles.passwordLabelRow}>
-            <Text style={styles.label}>PASSWORD</Text>
+            <Text style={styles.label}>
+              PASSWORD
+            </Text>
 
-            <Pressable>
+            <Pressable
+              onPress={() => {
+                Alert.alert(
+                  "Forgot password",
+                  "Password recovery will be added later.",
+                );
+              }}
+            >
               <Text style={styles.forgotPassword}>
                 Forgot password?
               </Text>
             </Pressable>
           </View>
 
-          <View style={styles.passwordInputContainer}>
+          <View
+            style={styles.passwordInputContainer}
+          >
             <TextInput
               placeholder="Enter your password"
               placeholderTextColor="#AAA39A"
               secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={password}
+              onChangeText={setPassword}
               style={styles.passwordInput}
             />
 
             <Pressable
               onPress={() =>
-                setShowPassword((current) => !current)
+                setShowPassword(
+                  (current) => !current,
+                )
               }
               accessibilityLabel={
                 showPassword
@@ -108,20 +202,20 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        {/* Login */}
         <Pressable
-          style={styles.loginButton}
-          onPress={() => {
-            // Backend connection will be added later.
-          }}
+          style={[
+            styles.loginButton,
+            loading && styles.loginButtonDisabled,
+          ]}
+          onPress={handleLogin}
+          disabled={loading}
         >
           <Text style={styles.loginButtonText}>
-            Login
+            {loading ? "Logging in..." : "Login"}
           </Text>
         </Pressable>
       </View>
 
-      {/* Register */}
       <View style={styles.bottomText}>
         <Text style={styles.accountText}>
           Don't have an account?
@@ -275,6 +369,10 @@ const styles = StyleSheet.create({
       height: 8,
     },
     elevation: 4,
+  },
+
+  loginButtonDisabled: {
+    opacity: 0.6,
   },
 
   loginButtonText: {
