@@ -343,3 +343,35 @@ export const closeRestaurant = async (
     },
   });
 };
+
+// ========================================
+// GET APPROVED RESTAURANTS FOR CUSTOMERS
+// ========================================
+
+export const getRestaurants = async () => {
+  return prisma.restaurant.findMany({
+    where: {
+      status: "APPROVED",
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      phone: true,
+      email: true,
+      address: true,
+      city: true,
+      subCity: true,
+      latitude: true,
+      longitude: true,
+      logoUrl: true,
+      coverImageUrl: true,
+      status: true,
+      isOpen: true,
+    },
+  });
+};

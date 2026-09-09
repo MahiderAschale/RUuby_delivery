@@ -13,6 +13,7 @@ import {
   getRestaurantDashboard,
   openRestaurant,
   closeRestaurant,
+  getRestaurants,
 } from "../controllers/restaurant.controller.js";
 
 import {
@@ -121,4 +122,13 @@ router.get(
 );
 
 
+// GET APPROVED RESTAURANTS FOR CUSTOMERS
+
+
+router.get(
+  "/",
+  authenticate,
+  authorize("CUSTOMER"),
+  getRestaurants,
+);
 export default router;

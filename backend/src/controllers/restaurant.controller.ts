@@ -347,3 +347,33 @@ export const closeRestaurant = async (
     });
   }
 };
+
+// ========================================
+// GET APPROVED RESTAURANTS FOR CUSTOMERS
+// ========================================
+
+export const getRestaurants = async (
+  res: Response,
+): Promise<void> => {
+  try {
+    const restaurants =
+      await restaurantService.getRestaurants();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        restaurants,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Get restaurants error:",
+      error,
+    );
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to get restaurants",
+    });
+  }
+};
