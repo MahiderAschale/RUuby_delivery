@@ -62,21 +62,11 @@ const handleLogin = async () => {
       response.data.accessToken,
     );
 
-    Alert.alert(
-      "Welcome back",
-      "You have logged in successfully.",
-      [
-        {
-          text: "Continue",
-          onPress: () => {
-            router.replace("/(main)");
-          },
-        },
-      ],
-      {
-        cancelable: false,
-      },
-    );
+
+
+router.replace("/(main)/");
+      
+      
   } catch (error: any) {
     console.error(
       "Login error:",
