@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import {
   ActivityIndicator,
   Alert,
@@ -438,11 +439,7 @@ export default function CartScreen() {
 
         <TouchableOpacity
           style={styles.checkoutButton}
-          onPress={() =>
-            Alert.alert(
-              "Checkout",
-              "Checkout will be connected next.",
-            )
+          onPress={() =>router.push("/checkout")
           }
         >
           <Text style={styles.checkoutButtonText}>
