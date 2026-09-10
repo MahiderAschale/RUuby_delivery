@@ -35,3 +35,45 @@ export const getRestaurants = async (): Promise<
 
   return response.data.data.restaurants;
 };
+
+
+
+interface GetRestaurantResponse {
+  success: boolean;
+  data: {
+    restaurant: RestaurantDetail;
+  };
+}
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number | string;
+  imageUrl?: string | null;
+  isAvailable: boolean;
+}
+
+export interface MenuCategory {
+  id: string;
+  name: string;
+  description?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  items: MenuItem[];
+}
+
+export interface RestaurantDetail extends Restaurant {
+  categories: MenuCategory[];
+}
+
+export const getRestaurantBySlug = async (
+  slug: string,
+): Promise<RestaurantDetail> => {
+  const response =
+    await api.get<GetRestaurantResponse>(
+      `/restaurants/${slug}`,
+    );
+
+  return response.data.data.restaurant;
+};

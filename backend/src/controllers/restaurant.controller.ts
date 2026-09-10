@@ -353,6 +353,7 @@ export const closeRestaurant = async (
 // ========================================
 
 export const getRestaurants = async (
+  _req: Request,
   res: Response,
 ): Promise<void> => {
   try {
@@ -374,6 +375,45 @@ export const getRestaurants = async (
     res.status(500).json({
       success: false,
       message: "Failed to get restaurants",
+    });
+  }
+};
+
+export const getRestaurantBySlug = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const slug = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
+
+    const restaurant =
+      await restaurantService.getRestaurantBySlug(
+        slug,
+      );
+
+    if (!restaurant) {
+      res.status(404).json({
+        success: false,
+        message: "Restaurant not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        restaurant,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Get restaurant by slug error:",
+      error,
+    );
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to get restaurant",
     });
   }
 };

@@ -375,3 +375,38 @@ export const getRestaurants = async () => {
     },
   });
 };
+
+// ========================================
+// GET APPROVED RESTAURANT BY SLUG FOR CUSTOMERS
+// ========================================
+
+export const getRestaurantBySlug = async (
+  slug: string,
+) => {
+  return prisma.restaurant.findFirst({
+    where: {
+      slug,
+      status: "APPROVED",
+    },
+    include: {
+      categories: {
+        where: {
+          isActive: true,
+        },
+        orderBy: {
+          sortOrder: "asc",
+        },
+        include: {
+          items: {
+            where: {
+              isAvailable: true,
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+        },
+      },
+    },
+  });
+};

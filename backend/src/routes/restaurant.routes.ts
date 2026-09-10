@@ -14,6 +14,7 @@ import {
   openRestaurant,
   closeRestaurant,
   getRestaurants,
+  getRestaurantBySlug,
 } from "../controllers/restaurant.controller.js";
 
 import {
@@ -131,4 +132,13 @@ router.get(
   authorize("CUSTOMER"),
   getRestaurants,
 );
+
+
+router.get(
+  "/:slug",
+  authenticate,
+  authorize("CUSTOMER"),
+  getRestaurantBySlug,
+); 
+
 export default router;
