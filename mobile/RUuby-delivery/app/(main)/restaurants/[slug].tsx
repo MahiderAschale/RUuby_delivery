@@ -9,11 +9,12 @@ import {
 import { useEffect, useState } from "react";
 import { useLocalSearchParams, router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-
+import { Alert } from "react-native";
 import {
   getRestaurantBySlug,
   type RestaurantDetail,
 } from "../../../services/restaurant.service";
+import { addItemToCart } from "../../../services/cart.service";
 
 const COLORS = {
   background: "#F8F5EF",
@@ -37,6 +38,9 @@ export default function RestaurantDetailsScreen() {
     useState(true);
 
   const [error, setError] =
+    useState<string | null>(null);
+  
+  const [addingItemId, setAddingItemId] =
     useState<string | null>(null);
 
   useEffect(() => {
@@ -316,19 +320,42 @@ export default function RestaurantDetailsScreen() {
                       </View>
 
                       <Pressable
-                        style={[
-                          styles.addButton,
-                          !restaurant.isOpen &&
-                            styles.disabledButton,
-                        ]}
-                        disabled={
-                          !restaurant.isOpen
-                        }
-                        onPress={() => {
-                          console.log(
-                            "Add to cart:",
-                            item.id,
-                          );
+                          style={[
+                         styles.addButton,
+                        !restaurant.isOpen &&
+                         styles.disabledButton,
+                          ]}
+                          disabled={
+                           !restaurant.isOpen ||
+                         addingItemId === item.id
+                               }
+                        onPress={async () => {
+                          try {
+                            setAddingItemId(item.id);
+                        
+                            await addItemToCart(item.id, 1);
+                        
+                            Alert.alert(
+                              "Added to cart",
+                              `${item.name} has been added to your cart.`,
+                            );
+                          } catch (error: any) {
+                            console.error(
+                              "Add to cart error:",
+                              error,
+                            );
+                        
+                            const message =
+                              error?.response?.data?.message ||
+                              "Failed to add item to cart.";
+                        
+                            Alert.alert(
+                              "Unable to add item",
+                              message,
+                            );
+                          } finally {
+                            setAddingItemId(null);
+                          }
                         }}
                       >
                         <Ionicons
