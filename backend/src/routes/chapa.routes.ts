@@ -1,14 +1,21 @@
 import { Router } from "express";
 
-import { authenticate } from "../middleware/auth.middleware.js";
-import { validate } from "../middleware/validate.middleware.js";
+import { authenticate }
+  from "../middleware/auth.middleware.js";
+
+import { validate }
+  from "../middleware/validate.middleware.js";
 
 import {
-  initializeChapaPayment,
-  verifyChapaPayment,
+  initializePayment,
+  verifyPayment,
+  chapaCallback,
 } from "../controllers/chapa.controller.js";
 
-import { checkoutPreviewSchema } from "../validations/checkout.validation.js";
+import {
+  initializeChapaSchema,
+} from "../validations/chapa.validation.js";
+
 
 const router = Router();
 
@@ -19,20 +26,39 @@ const router = Router();
 
 router.post(
   "/initialize",
+
   authenticate,
-  validate(checkoutPreviewSchema),
-  initializeChapaPayment,
+
+  validate(
+    initializeChapaSchema,
+  ),
+
+  initializePayment,
 );
 
 
 // ========================================
-// VERIFY CHAPA PAYMENT
+// VERIFY PAYMENT
 // ========================================
 
 router.get(
   "/verify/:txRef",
+
   authenticate,
-  verifyChapaPayment,
+
+  verifyPayment,
 );
+
+
+// ========================================
+// CHAPA CALLBACK
+// ========================================
+
+router.get(
+  "/callback",
+
+  chapaCallback,
+);
+
 
 export default router;

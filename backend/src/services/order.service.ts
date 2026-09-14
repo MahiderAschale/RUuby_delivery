@@ -197,15 +197,7 @@ export const createOrder = async (
         },
       });
 
-  //  CLEAR CART
-     
-      await tx.cartItem.deleteMany({
-        where: {
-          cartId: cart.id,
-        },
-      });
-
-  // RETURN ORDER
+   // RETURN ORDER
       
       return {
         order,

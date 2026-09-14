@@ -2,7 +2,6 @@ import axios from "axios";
 import { randomUUID } from "crypto";
 
 import prisma from "../config/database.js";
-import { previewCheckout } from "./checkout.service.js";
 
 const CHAPA_API_URL =
   process.env.CHAPA_API_URL ?? "https://api.chapa.co";
@@ -43,26 +42,84 @@ const ensureChapaConfig = () => {
 
 
 // ========================================
-// INITIALIZE PAYMENT
+// 1. INITIALIZE PAYMENT
 // ========================================
 
 export const initializePayment = async (
   userId: string,
-  addressId: string,
+  orderId: string,
 ) => {
   ensureChapaConfig();
 
-  // Recalculate checkout on the server.
-  const checkout = await previewCheckout(
-    userId,
-    addressId,
-    "CHAPA",
-  );
+
+  // ========================================
+  // GET ORDER
+  // ========================================
+
+  const order = await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      customerId: userId,
+    },
+
+    include: {
+      restaurant: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+
+      payment: true,
+    },
+  });
+
+
+  // ========================================
+  // CHECK ORDER
+  // ========================================
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+
+  // ========================================
+  // CHECK PAYMENT
+  // ========================================
+
+  if (!order.payment) {
+    throw new Error("Payment not found");
+  }
+
+
+  if (order.payment.status === "PAID") {
+    throw new Error(
+      "Order has already been paid",
+    );
+  }
+
+
+  // ========================================
+  // CHECK ORDER STATUS
+  // ========================================
+
+  if (order.status === "CANCELLED") {
+    throw new Error(
+      "Cancelled orders cannot be paid",
+    );
+  }
+
+
+  // ========================================
+  // GET CUSTOMER
+  // ========================================
 
   const user = await prisma.user.findUnique({
     where: {
       id: userId,
     },
+
     select: {
       firstName: true,
       lastName: true,
@@ -71,79 +128,174 @@ export const initializePayment = async (
     },
   });
 
+
   if (!user) {
     throw new Error("User not found");
   }
 
-  // Unique Chapa transaction reference.
-  const txRef = `RUUBY-${Date.now()}-${randomUUID()}`;
+
+  // ========================================
+  // 2. GENERATE TRANSACTION REFERENCE
+  // ========================================
+
+  const txRef = 
+  `RUUBY-${Date.now()}-${randomUUID().slice(0, 8)}`;
+
+
+  // ========================================
+  // 3. SAVE TX REF IN DATABASE
+  // ========================================
+
+  await prisma.payment.update({
+    where: {
+      id: order.payment.id,
+    },
+
+    data: {
+      transactionReference: txRef,
+      provider: "CHAPA",
+      status: "PENDING",
+    },
+  });
+
+
+  // ========================================
+  // 4. CREATE CHAPA REQUEST
+  // ========================================
 
   const payload: Record<string, unknown> = {
-    amount: checkout.total.toString(),
+    amount: order.total.toString(),
+
     currency: "ETB",
 
     first_name: user.firstName,
+
     last_name: user.lastName,
+
     phone_number: user.phone,
 
     tx_ref: txRef,
 
     callback_url: CHAPA_CALLBACK_URL,
+
     return_url: CHAPA_RETURN_URL,
 
     customization: {
       title: "RUuby Delivery",
+
       description:
-        `Payment for ${checkout.restaurant.name}`,
+        `Payment for ${order.restaurant.name}`,
     },
 
     meta: {
-      payment_reason: "RUuby Delivery order",
+      order_id: order.id,
 
-      invoices: checkout.items.map((item) => ({
-        key: item.name,
-        value: `${item.quantity} x ${item.unitPrice.toString()} ETB`,
-      })),
+      payment_id: order.payment.id,
     },
   };
+
+
+  // ========================================
+  // OPTIONAL EMAIL
+  // ========================================
 
   if (user.email) {
     payload.email = user.email;
   }
 
-  const response = await axios.post(
-    `${CHAPA_API_URL}/v1/transaction/initialize`,
-    payload,
-    {
-      headers: {
-        Authorization: `Bearer ${CHAPA_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-    },
-  );
 
-  if (
-    response.data?.status !== "success" ||
-    !response.data?.data?.checkout_url
-  ) {
+  // ========================================
+  // 5. SEND REQUEST TO CHAPA
+  // ========================================
+
+  try {
+    const response = await axios.post(
+      `${CHAPA_API_URL}/v1/transaction/initialize`,
+
+      payload,
+
+      {
+        headers: {
+          Authorization:
+            `Bearer ${CHAPA_SECRET_KEY}`,
+
+          "Content-Type":
+            "application/json",
+        },
+      },
+    );
+
+
+    // ========================================
+    // CHECK CHAPA RESPONSE
+    // ========================================
+
+    if (
+      response.data?.status !== "success" ||
+      !response.data?.data?.checkout_url
+    ) {
+      throw new Error(
+        response.data?.message ??
+          "Failed to initialize Chapa payment",
+      );
+    }
+
+
+    // ========================================
+    // RETURN CHECKOUT INFORMATION
+    // ========================================
+
+    return {
+      orderId: order.id,
+
+      paymentId: order.payment.id,
+
+      txRef,
+
+      checkoutUrl:
+        response.data.data.checkout_url,
+
+      amount: order.total,
+
+      currency: "ETB",
+
+      paymentMethod: "CHAPA",
+    };
+
+  } catch (error: any) {
+
+    console.error(
+      "========== CHAPA INITIALIZATION ERROR ==========",
+    );
+
+    console.error(
+      "Status:",
+      error.response?.status,
+    );
+
+    console.error(
+      "Response:",
+      JSON.stringify(
+        error.response?.data,
+        null,
+        2,
+      ),
+    );
+
+    console.error(
+      "================================================",
+    );
+
     throw new Error(
-      response.data?.message ??
+      error.response?.data?.message ??
         "Failed to initialize Chapa payment",
     );
   }
-
-  return {
-    txRef,
-    checkoutUrl: response.data.data.checkout_url,
-    amount: checkout.total,
-    currency: "ETB",
-    paymentMethod: "CHAPA",
-  };
 };
 
 
 // ========================================
-// VERIFY PAYMENT
+// VERIFY PAYMENT WITH CHAPA
 // ========================================
 
 export const verifyPayment = async (
@@ -155,12 +307,187 @@ export const verifyPayment = async (
     `${CHAPA_API_URL}/v1/transaction/verify/${encodeURIComponent(
       txRef,
     )}`,
+
     {
       headers: {
-        Authorization: `Bearer ${CHAPA_SECRET_KEY}`,
+        Authorization:
+          `Bearer ${CHAPA_SECRET_KEY}`,
       },
     },
   );
 
   return response.data;
+};
+
+
+// ========================================
+// COMPLETE PAYMENT
+// ========================================
+
+export const completePayment = async (
+  txRef: string,
+) => {
+
+  // ========================================
+  // FIND PAYMENT
+  // ========================================
+
+  const payment =
+    await prisma.payment.findFirst({
+      where: {
+        transactionReference: txRef,
+      },
+
+      include: {
+        order: true,
+      },
+    });
+
+
+  if (!payment) {
+    throw new Error("Payment not found");
+  }
+
+
+  // ========================================
+  // ALREADY PAID
+  // ========================================
+
+  if (payment.status === "PAID") {
+    return payment;
+  }
+
+
+  // ========================================
+  // VERIFY WITH CHAPA
+  // ========================================
+
+  const result =
+    await verifyPayment(txRef);
+
+
+  const chapaPayment =
+    result?.data;
+
+
+  // ========================================
+  // CHECK CHAPA RESPONSE
+  // ========================================
+
+  if (
+    result?.status !== "success" ||
+    !chapaPayment
+  ) {
+    throw new Error(
+      "Chapa payment verification failed",
+    );
+  }
+
+
+  // ========================================
+  // CHECK PAYMENT STATUS
+  // ========================================
+
+  if (
+    chapaPayment.status !== "success"
+  ) {
+    throw new Error(
+      "Payment was not successful",
+    );
+  }
+
+
+  // ========================================
+  // CHECK TX REF
+  // ========================================
+
+  if (
+    chapaPayment.tx_ref !== txRef
+  ) {
+    throw new Error(
+      "Transaction reference mismatch",
+    );
+  }
+
+
+  // ========================================
+  // CHECK AMOUNT
+  // ========================================
+
+  const chapaAmount =
+    Number(chapaPayment.amount);
+
+  const databaseAmount =
+    Number(payment.amount);
+
+
+  if (
+    chapaAmount !== databaseAmount
+  ) {
+    throw new Error(
+      "Payment amount mismatch",
+    );
+  }
+
+
+  // ========================================
+  // CHECK CURRENCY
+  // ========================================
+
+  if (
+    chapaPayment.currency !== "ETB"
+  ) {
+    throw new Error(
+      "Payment currency mismatch",
+    );
+  }
+
+
+  // ========================================
+  // MARK PAYMENT AS PAID
+  // ========================================
+
+  const updatedPayment =
+    await prisma.$transaction(
+      async (tx) => {
+
+        const updatedPayment =
+          await tx.payment.update({
+            where: {
+              id: payment.id,
+            },
+
+            data: {
+              status: "PAID",
+
+              paidAt: new Date(),
+
+              provider: "CHAPA",
+            },
+          });
+
+
+        // ========================================
+        // MARK ORDER AS PAID
+        // ========================================
+
+        await tx.order.update({
+          where: {
+            id: payment.orderId,
+          },
+
+          data: {
+            paymentStatus: "PAID",
+
+            status: "CONFIRMED",
+          },
+        });
+
+
+        return updatedPayment;
+      },
+    );
+
+
+  return updatedPayment;
 };
