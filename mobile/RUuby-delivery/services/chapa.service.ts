@@ -51,15 +51,15 @@ export const initializeChapaPayment = async (
   return response.data.data.payment;
 };
 
+
+// VERIFY CHAPA PAYMENT
+
 export const verifyChapaPayment = async (
   txRef: string,
 ) => {
-  const response =
-    await api.get<VerifyPaymentResponse>(
-      `/payments/chapa/verify/${encodeURIComponent(
-        txRef,
-      )}`,
-    );
+  const response = await api.get(
+    `/payments/chapa/verify/${txRef}`,
+  );
 
   return response.data.data.payment;
 };
