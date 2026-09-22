@@ -17,13 +17,37 @@ type PaymentState =
   | "error";
 
 export default function PaymentResultScreen() {
-  const params = useLocalSearchParams<{
-    tx_ref?: string;
-    trx_ref?: string;
-    status?: string;
-  }>();
+const params = useLocalSearchParams<{
+  tx_ref?: string | string[];
+  trx_ref?: string | string[];
+  txRef?: string | string[];
+  reference?: string | string[];
+  ref_id?: string | string[];
+  status?: string | string[];
+}>();
 
-  const txRef = params.tx_ref || params.trx_ref;
+// TEMPORARY DEBUG LOG
+console.log("Chapa return params:", params);
+
+const getParam = (
+  value: string | string[] | undefined,
+): string | undefined => {
+  const result = Array.isArray(value)
+    ? value[0]
+    : value;
+
+  return result?.trim() || undefined;
+};
+
+const txRef =
+  getParam(params.tx_ref) ||
+  getParam(params.trx_ref) ||
+  getParam(params.txRef) ||
+  getParam(params.reference) ||
+  getParam(params.ref_id);
+
+
+  //const txRef = params.tx_ref || params.trx_ref;
 
   const [paymentState, setPaymentState] =
     useState<PaymentState>("verifying");

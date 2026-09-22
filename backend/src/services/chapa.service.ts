@@ -135,15 +135,22 @@ export const initializePayment = async (
 
 
   // ========================================
-  // 2. GENERATE TRANSACTION REFERENCE
+  //  GENERATE TRANSACTION REFERENCE
   // ========================================
 
   const txRef = 
   `RUUBY-${Date.now()}-${randomUUID().slice(0, 8)}`;
 
+  
+// Build return URL with transaction reference
+const returnUrl = new URL(CHAPA_RETURN_URL!);
+
+returnUrl.searchParams.set("tx_ref", txRef);
+
+
 
   // ========================================
-  // 3. SAVE TX REF IN DATABASE
+  // SAVE TX REF IN DATABASE
   // ========================================
 
   await prisma.payment.update({
@@ -160,7 +167,7 @@ export const initializePayment = async (
 
 
   // ========================================
-  // 4. CREATE CHAPA REQUEST
+  //  CREATE CHAPA REQUEST
   // ========================================
 
   const payload: Record<string, unknown> = {
@@ -178,7 +185,9 @@ export const initializePayment = async (
 
     callback_url: CHAPA_CALLBACK_URL,
 
-    return_url: CHAPA_RETURN_URL,
+    return_url: returnUrl.toString(),
+
+
 
     customization: {
       title: "RUuby Delivery",
@@ -205,7 +214,7 @@ export const initializePayment = async (
 
 
   // ========================================
-  // 5. SEND REQUEST TO CHAPA
+  // SEND REQUEST TO CHAPA
   // ========================================
 
   try {
