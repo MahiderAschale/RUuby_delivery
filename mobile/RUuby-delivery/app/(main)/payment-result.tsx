@@ -26,8 +26,6 @@ const params = useLocalSearchParams<{
   status?: string | string[];
 }>();
 
-// TEMPORARY DEBUG LOG
-console.log("Chapa return params:", params);
 
 const getParam = (
   value: string | string[] | undefined,
@@ -96,9 +94,14 @@ const txRef =
     }
   }, [txRef]);
 
-  useEffect(() => {
-    verifyPayment();
-  }, [verifyPayment]);
+useEffect(() => {
+   if (!txRef) {
+    router.replace("/(main)");
+    return;
+  }
+
+  void verifyPayment();
+}, [txRef, verifyPayment]);
 
   const handleContinue = () => {
     if (orderId) {
