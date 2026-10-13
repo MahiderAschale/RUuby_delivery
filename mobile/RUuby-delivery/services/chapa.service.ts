@@ -58,7 +58,8 @@ export const verifyChapaPayment = async (
   txRef: string,
 ) => {
   const response = await api.get(
-    `/payments/chapa/verify/${txRef}`,
+    `/payments/chapa/verify/${encodeURIComponent(txRef)}`,
+    { timeout: 15000 },
   );
 
   return response.data.data.payment;
