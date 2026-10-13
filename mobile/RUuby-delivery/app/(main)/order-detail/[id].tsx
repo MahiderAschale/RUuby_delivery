@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-
+import { Linking } from "react-native";
 import {
   cancelCustomerOrder,
   getCustomerOrderById,
@@ -406,6 +406,51 @@ export default function OrderDetailsScreen() {
             </Text>
           )}
         </View>
+        
+
+        {order.payment?.transactionReference && (
+  <View style={styles.transactionBox}>
+    <Text style={styles.transactionLabel}>
+      Transaction reference
+    </Text>
+
+    <Text
+      selectable
+      style={[
+        styles.transactionValue,
+        { color: "#7B1E3A", textDecorationLine: "underline" },
+      ]}
+      onPress={() => {
+        const txRef = order.payment?.transactionReference;
+
+        if (txRef) {
+          Linking.openURL(
+            `http://localhost:8081/payment-result?tx_ref=${encodeURIComponent(txRef)}`
+          );
+        }
+      }}
+    >
+      {order.payment.transactionReference}
+    </Text>
+
+    <Text style={styles.transactionHint}>
+      Tap to view payment details
+    </Text>
+  </View>
+)}
+
+
+{order.payment?.provider && (
+  <View style={styles.priceRow}>
+    <Text style={styles.priceLabel}>
+      Payment provider
+    </Text>
+
+    <Text style={styles.priceValue}>
+      {formatStatus(order.payment.provider)}
+    </Text>
+  </View>
+)}
 
         {/* DELIVERY ADDRESS */}
         <View style={styles.card}>
@@ -846,4 +891,28 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 10,
   },
+ 
+transactionBox: {
+  marginTop: 12,
+  padding: 12,
+  backgroundColor: "#F8F5EF",
+  borderRadius: 10,
+  borderWidth: 1,
+  borderColor: "#E7E0D7",
+},
+transactionLabel: {
+  color: "#817D76",
+  fontSize: 12,
+  marginBottom: 6,
+},
+transactionValue: {
+  color: "#26231F",
+  fontSize: 13,
+  fontWeight: "600",
+},
+transactionHint: {
+  color: "#817D76",
+  fontSize: 12,
+  marginTop: 6,
+},
 });
