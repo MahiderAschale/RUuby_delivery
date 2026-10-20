@@ -32,3 +32,4 @@ export const getCurrentUser = async () => {
 
   return response.data;
 };
+

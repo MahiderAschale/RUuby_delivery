@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   loginController,
   registerController,
+  getCurrentUserController,
 } from "../controllers/auth.controller.js";
 import { authenticate } from "../middleware/auth.middleware.js";
 import { authorize } from "../middleware/role.middleware.js";
@@ -25,15 +26,11 @@ router.post(
   loginController,
 );
 
-router.get("/me", authenticate, (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Authentication successful",
-    data: {
-      user: req.user,
-    },
-  });
-});
+router.get(
+  "/me",
+  authenticate,
+  getCurrentUserController,
+);
 
 router.get(
   "/admin",
