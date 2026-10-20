@@ -500,3 +500,79 @@ export const completePayment = async (
 
   return updatedPayment;
 };
+
+
+
+
+export const initiateChapaRefund = async (
+  txRef: string,
+  amount: number,
+  reason: string,
+) => {
+  if (!CHAPA_SECRET_KEY) {
+    throw new Error("CHAPA_SECRET_KEY is not configured");
+  }
+
+  if (!txRef || !Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Invalid refund reference or amount");
+  }
+
+  const reference = `RUUBY-REFUND-${randomUUID()}`;
+
+  try {
+    const response = await axios.post(
+      `${CHAPA_API_URL}/v1/refund/${encodeURIComponent(txRef)}`,
+      {
+        amount: amount.toFixed(2),
+        reason,
+        reference,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${CHAPA_SECRET_KEY}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 15000,
+      },
+    );
+
+    console.log("Chapa refund response:", {
+      httpStatus: response.status,
+      status: response.data?.status,
+      message: response.data?.message,
+      data: response.data?.data,
+    });
+
+    const data = response.data?.data;
+    const refundReference = data?.ref_id;
+
+    if (
+      response.data?.status !== "success" ||
+      !refundReference
+    ) {
+      throw new Error(
+        "Chapa did not confirm that the refund request was accepted",
+      );
+    }
+
+    return {
+      refundReference: String(refundReference),
+      status: String(data?.status ?? "initiated"),
+      reference,
+    };
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      console.error("Chapa refund request failed:", {
+        httpStatus: error.response?.status,
+        response: error.response?.data,
+        message: error.message,
+      });
+    } else {
+      console.error("Chapa refund processing error:", error);
+    }
+
+    throw error;
+  }
+};
+
+

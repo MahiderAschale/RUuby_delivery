@@ -3,6 +3,8 @@ import { Prisma } from "../generated/prisma/client.js";
 
 import { generateOrderNumber } from "../utils/order-number.js";
 
+import { initiateChapaRefund } from "./chapa.service.js";
+
 const DELIVERY_FEE = new Prisma.Decimal(50);
 const DISCOUNT = new Prisma.Decimal(0);
 
@@ -378,46 +380,191 @@ export const getCustomerOrders = async (
   
   // ========================================
   // CANCEL CUSTOMER ORDER
- 
-  export const cancelCustomerOrder = async (
-    userId: string,
-    orderId: string,
-  ) => {
-    const order = await prisma.order.findFirst({
+    
+const CANCELLABLE_STATUSES = [
+  "PENDING",
+  "CONFIRMED",
+] as const;
+
+const REFUND_PENALTY_RATE = 0.10;
+
+const roundMoney = (amount: number) =>
+  Math.round((amount + Number.EPSILON) * 100) / 100;
+
+export const cancelCustomerOrder = async (
+  userId: string,
+  orderId: string,
+) => {
+  const order = await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      customerId: userId,
+    },
+    include: {
+      payment: true,
+    },
+  });
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  if (
+    !CANCELLABLE_STATUSES.includes(
+      order.status as (typeof CANCELLABLE_STATUSES)[number],
+    )
+  ) {
+    throw new Error(
+      "This order can no longer be cancelled",
+    );
+  }
+
+  const payment = order.payment;
+
+  const isPaid =
+    order.paymentStatus === "PAID" ||
+    payment?.status === "PAID";
+
+  // Unpaid orders: cancel without a penalty or refund.
+  if (!isPaid) {
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.order.updateMany({
+        where: {
+          id: orderId,
+          customerId: userId,
+          status: { in: [...CANCELLABLE_STATUSES] },
+        },
+        data: {
+          status: "CANCELLED",
+          paymentStatus:
+            order.paymentStatus === "PENDING"
+              ? "CANCELLED"
+              : order.paymentStatus,
+        },
+      });
+
+      if (updated.count !== 1) {
+        throw new Error(
+          "Order status changed. Refresh and try again.",
+        );
+      }
+
+      await tx.delivery.updateMany({
+        where: { orderId },
+        data: { status: "CANCELLED" },
+      });
+
+      return tx.order.findUniqueOrThrow({
+        where: { id: orderId },
+        include: { payment: true },
+      });
+    });
+  }
+
+  // A paid order must have a Chapa transaction reference.
+  if (
+    !payment ||
+    payment.method !== "CHAPA" ||
+    !payment.transactionReference
+  ) {
+    throw new Error(
+      "Paid order has no valid Chapa transaction reference. Contact support.",
+    );
+  }
+
+  if (
+    payment.status === "REFUND_PENDING" ||
+    payment.status === "REFUNDED" ||
+    payment.refundReference
+  ) {
+    throw new Error(
+      "A refund has already been requested for this order. Refresh the order.",
+    );
+  }
+
+  const orderTotal = Number(order.total);
+  const paidAmount = Number(payment.amount);
+
+  if (
+    !Number.isFinite(orderTotal) ||
+    !Number.isFinite(paidAmount) ||
+    orderTotal <= 0 ||
+    paidAmount <= 0
+  ) {
+    throw new Error("Invalid order or payment amount");
+  }
+
+  // Penalty is 10% of the order total.
+  const penalty = roundMoney(orderTotal * REFUND_PENALTY_RATE);
+  const refundAmount = roundMoney(
+    Math.min(paidAmount, orderTotal) - penalty,
+  );
+
+  if (refundAmount <= 0) {
+    throw new Error(
+      "The calculated refund amount is not positive. Contact support.",
+    );
+  }
+
+  /*
+   * Request the partial refund from Chapa first.
+   * Do not mark the payment REFUNDED here: Chapa may
+   * still report initiated or processing.
+   */
+  const refund = await initiateChapaRefund(
+    payment.transactionReference,
+    refundAmount,
+    `Customer order cancellation. Penalty: ${penalty} ETB`,
+  );
+
+  /*
+   * Persist cancellation and refund tracking together.
+   * If this database write fails after Chapa accepts
+   * the request, reconcile the Chapa reference before
+   * retrying; do not issue a second refund blindly.
+   */
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.order.updateMany({
       where: {
         id: orderId,
         customerId: userId,
+        status: { in: [...CANCELLABLE_STATUSES] },
+        paymentStatus: "PAID",
       },
-    });
-  
-    if (!order) {
-      throw new Error("Order not found");
-    }
-  
-    const cancellableStatuses = [
-      "PENDING",
-      "CONFIRMED",
-    ];
-  
-    if (
-      !cancellableStatuses.includes(order.status)
-    ) {
-      throw new Error(
-        "This order can no longer be cancelled",
-      );
-    }
-  
-    return prisma.order.update({
-      where: {
-        id: orderId,
-      },
-  
       data: {
         status: "CANCELLED",
+        paymentStatus: "REFUND_PENDING",
       },
     });
-  };
 
+    if (updated.count !== 1) {
+      throw new Error(
+        "Order status changed while the refund was being requested. Support reconciliation is required.",
+      );
+    }
+
+    await tx.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: "REFUND_PENDING",
+        refundAmount,
+        refundPenalty: penalty,
+        refundReference: refund.refundReference,
+        refundStatus: refund.status,
+      },
+    });
+
+    await tx.delivery.updateMany({
+      where: { orderId },
+      data: { status: "CANCELLED" },
+    });
+
+    return tx.order.findUniqueOrThrow({
+      where: { id: orderId },
+      include: { payment: true },
+    });
+  });
+};
 
   // GET RESTAURANT ORDERS
 
@@ -738,3 +885,5 @@ export const markOrderReady = async (
     },
   });
 };
+
+  

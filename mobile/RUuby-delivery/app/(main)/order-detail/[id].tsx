@@ -88,48 +88,69 @@ export default function OrderDetailsScreen() {
     setRefreshing(false);
   };
 
-  const handleCancel = () => {
-    if (!order || !canCancel(order.status)) return;
 
-    Alert.alert(
-      "Cancel order?",
-      "Are you sure you want to cancel this order?",
-      [
-        { text: "Keep Order", style: "cancel" },
-        {
-          text: "Cancel Order",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setCancelling(true);
-              const updatedOrder =
-                await cancelCustomerOrder(order.id);
+const handleCancel = async () => {
+  if (!order || !canCancel(order.status)) {
+    console.log("Cancellation not allowed");
+    return;
+  }
 
-              setOrder((previous) =>
-                previous
-                  ? { ...previous, ...updatedOrder }
-                  : updatedOrder,
-              );
+  const isPaid =
+    order.paymentStatus === "PAID" ||
+    order.payment?.status === "PAID";
 
-              Alert.alert(
-                "Order cancelled",
-                "Your order has been cancelled.",
-              );
-            } catch (err: any) {
-              Alert.alert(
-                "Couldn't cancel order",
-                err?.response?.data?.message ||
-                  "Please try again.",
-              );
-            } finally {
-              setCancelling(false);
-            }
-          },
-        },
-      ],
+  const penalty = isPaid
+    ? Math.round(Number(order.total) * 0.1 * 100) / 100
+    : 0;
+
+  const estimatedRefund = isPaid
+    ? Math.max(0, Number(order.total) - penalty)
+    : 0;
+
+  const message = isPaid
+    ? `A 10% cancellation penalty (${formatPrice(
+        penalty,
+      )}) will apply. Your estimated refund is ${formatPrice(
+        estimatedRefund,
+      )}. Continue?`
+    : "This unpaid order will be cancelled without a penalty. Continue?";
+
+  // Expo Web confirmation
+  const confirmed = window.confirm(message);
+
+  if (!confirmed) {
+    console.log("Cancellation declined");
+    return;
+  }
+
+  try {
+    setCancelling(true);
+
+    console.log("Submitting cancellation for:", order.id);
+
+    await cancelCustomerOrder(order.id);
+
+    await loadOrder();
+
+    window.alert(
+      isPaid
+        ? "Cancellation submitted. Check your refund status for updates."
+        : "Your order has been cancelled.",
     );
-  };
+  } catch (err: any) {
+    console.error("Cancellation failed:", err);
 
+    window.alert(
+      err?.response?.data?.message ||
+        "Couldn't cancel the order. Please try again.",
+    );
+  } finally {
+    setCancelling(false);
+  }
+};
+
+
+  
   if (loading) {
     return (
       <View style={styles.center}>
@@ -205,9 +226,9 @@ export default function OrderDetailsScreen() {
   showsVerticalScrollIndicator={false}
   refreshControl={
     <RefreshControl
-      refreshing={loading}
-      onRefresh={loadOrder}
-    />
+  refreshing={refreshing}
+  onRefresh={handleRefresh}
+/>
   }
 >
         {/* ORDER HEADER */}
@@ -509,30 +530,31 @@ export default function OrderDetailsScreen() {
           </View>
         )}
 
-        {/* CANCEL ORDER */}
-        {canCancel(order.status) && (
-          <Pressable
-            style={[
-              styles.cancelButton,
-              cancelling && styles.disabledButton,
-            ]}
-            onPress={handleCancel}
-            disabled={cancelling}
-          >
-            {cancelling ? (
-              <ActivityIndicator color="#7B1E3A" />
-            ) : (
-              <Text style={styles.cancelButtonText}>
-                Cancel Order
-              </Text>
-            )}
-          </Pressable>
-        )}
+{canCancel(order.status) && (
+  <Pressable
+  style={[
+    styles.cancelButton,
+    cancelling && styles.disabledButton,
+  ]}
+  disabled={cancelling}
+  onPress={handleCancel}
+>
+  {cancelling ? (
+    <ActivityIndicator color="#7B1E3A" />
+  ) : (
+    <Text style={styles.cancelButtonText}>
+      Cancel Order
+    </Text>
+  )}
+</Pressable>
+  
+)}
 
-        <Text style={styles.footerText}>
-          Thank you for choosing RUuby!
-        </Text>
-      </ScrollView>
+<Text style={styles.footerText}>
+  Thank you for choosing RUuby!
+</Text>
+
+        </ScrollView>
     </View>
   );
 }
