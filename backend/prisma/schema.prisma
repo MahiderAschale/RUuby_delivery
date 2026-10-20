@@ -48,6 +48,7 @@ enum PaymentStatus {
   PENDING
   PAID
   FAILED
+  REFUND_PENDING
   REFUNDED
   CANCELLED
 }
@@ -449,12 +450,19 @@ model Payment {
 
   paidAt DateTime?
 
+  refundAmount    Decimal? @db.Decimal(10, 2)
+  refundPenalty   Decimal? @db.Decimal(10, 2)
+  refundReference String?
+  refundStatus    String?
+  refundedAt      DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([method])
   @@index([transactionReference])
+  @@index([refundReference])
   @@map("payments")
 }
 
